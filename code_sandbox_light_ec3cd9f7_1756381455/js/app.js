@@ -336,7 +336,7 @@ class AIeodingApp {
 
     async createMockScript(scriptType, tone, target, duration, hostNames) {
         try {
-            // 로딩 표시
+            // 로딩 상태 표시
             document.getElementById('generate-script-btn').innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>AI 대본 생성 중...';
             
             // 1인 진행 대본 (GPT API 호출)
@@ -366,6 +366,15 @@ class AIeodingApp {
 
         // Scroll to results
         document.getElementById('script-results-section').scrollIntoView({ behavior: 'smooth' });
+        } catch (error) {
+            console.error('Script generation error:', error);
+            
+            // Reset generate button
+            document.getElementById('generate-script-btn').disabled = false;
+            document.getElementById('generate-script-btn').innerHTML = '<i class="fas fa-magic mr-2"></i>대본 생성하기';
+            
+            alert('대본 생성 중 오류가 발생했습니다. 다시 시도해주세요.');
+        }
     }
 
     async generateOneHostScript() {
@@ -407,156 +416,45 @@ class AIeodingApp {
         });
     }
 
-    getScriptTemplate(target, tone, style) {
-        const templates = {
-            golf: {
-                friendly: {
-                    one_host: {
-                        intro: "안녕하세요! 오늘은 특별한 골프 여행을 소개해드릴게요.",
-                        core: "{destination} {duration} 골프 패키지예요! {golf_course}에서 {rounds} 라운드를 마음껏 즐기실 수 있답니다.",
-                        hotel: "숙박은 {hotel}에서 하시게 되고요, {meals} 포함되어서 정말 편리해요!",
-                        flight: "{airline}으로 편안하게 이동하시고, {departure_dates} 중에서 원하시는 날짜로 출발하실 수 있어요.",
-                        price: "이 모든 것이 {includes}까지 포함해서 단 {price}이에요!",
-                        perks: "특별히 {perks} 혜택도 드리고 있어요. 다만 {cautions} 미리 확인해주세요!",
-                        ending: "더 자세한 내용은 아래 링크에서 확인하실 수 있어요!"
-                    },
-                    two_hosts: {
-                        intro: "{host1}: 안녕하세요! {host1}입니다.\n{host2}: {host2}예요! 오늘은 골프 여행 얘기해볼까요?",
-                        core: "{host1}: {destination} 골프 여행이네요!\n{host2}: 네! {golf_course}에서 {rounds} 칠 수 있어요.",
-                        hotel: "{host1}: 어디서 숙박하나요?\n{host2}: {hotel}이에요! {meals}도 포함되어 있어서 좋아요.",
-                        flight: "{host1}: 항공편은 어떻게 되나요?\n{host2}: {airline}이고요, {departure_dates} 출발 가능해요!",
-                        price: "{host1}: 가격이 궁금해요!\n{host2}: {includes} 다 포함해서 {price}예요!",
-                        perks: "{host1}: 혜택도 있나요?\n{host2}: 당연히요! {perks} 드려요. 단, {cautions} 꼭 확인하세요!",
-                        ending: "{host1}: 더 자세한 정보는\n{host2}: 아래 링크에서 확인하세요!"
-                    }
-                },
-                trust: {
-                    one_host: {
-                        intro: "안녕하십니까. 오늘은 검증된 골프 여행 상품을 안내해드리겠습니다.",
-                        core: "{destination} {duration} 골프 패키지입니다. {golf_course}에서 총 {rounds}를 플레이하실 수 있습니다.",
-                        hotel: "숙박 시설은 {hotel}로 준비되어 있으며, {meals}이 제공됩니다.",
-                        flight: "{airline}을 이용하시게 되며, {departure_dates} 기간 중 출발 가능합니다.",
-                        price: "{includes} 모두 포함된 가격이 {price}입니다.",
-                        perks: "{perks} 등의 부가 혜택이 제공되며, {cautions} 사전 준비가 필요합니다.",
-                        ending: "상세한 내용은 하단의 링크를 통해 확인하시기 바랍니다."
-                    },
-                    two_hosts: {
-                        intro: "{host1}: 안녕하십니까, {host1}입니다.\n{host2}: {host2}입니다. 검증된 골프 여행을 소개해드리겠습니다.",
-                        core: "{host1}: {destination} 골프 패키지군요.\n{host2}: 맞습니다. {golf_course}에서 {rounds} 플레이 가능합니다.",
-                        hotel: "{host1}: 숙박은 어떻게 되나요?\n{host2}: {hotel}이며 {meals} 제공됩니다.",
-                        flight: "{host1}: 항공편 정보를 알려주세요.\n{host2}: {airline} 이용, {departure_dates} 출발 가능합니다.",
-                        price: "{host1}: 패키지 가격은 얼마입니까?\n{host2}: {includes} 포함하여 {price}입니다.",
-                        perks: "{host1}: 추가 혜택이 있나요?\n{host2}: {perks} 제공되며, {cautions} 필요합니다.",
-                        ending: "{host1}: 자세한 정보는\n{host2}: 하단 링크에서 확인 가능합니다."
-                    }
-                },
-                premium: {
-                    one_host: {
-                        intro: "프리미엄 골프 여행의 새로운 기준을 제시합니다.",
-                        core: "{destination}의 럭셔리 {duration} 골프 익스피리언스. 명문 {golf_course}에서의 {rounds} 라운드가 기다립니다.",
-                        hotel: "최고급 {hotel}에서의 특별한 휴식과 {meals}의 품격있는 다이닝을 경험하세요.",
-                        flight: "프리미엄 {airline} 서비스로 편안한 여정을, {departure_dates} 중 귀하만의 일정으로.",
-                        price: "{includes} 모든 것이 완벽하게 준비된 {price}의 프리미엄 패키지입니다.",
-                        perks: "VIP만을 위한 {perks} 특전과 함께, {cautions} 사전 준비로 완벽한 여행을.",
-                        ending: "럭셔리 골프 여행의 모든 것, 지금 확인하세요."
-                    },
-                    two_hosts: {
-                        intro: "{host1}: 프리미엄 골프 여행, {host1}입니다.\n{host2}: {host2}와 함께 럭셔리 익스피리언스를 소개합니다.",
-                        core: "{host1}: {destination} 프리미엄 골프군요.\n{host2}: 명문 {golf_course}에서의 {rounds}, 특별합니다.",
-                        hotel: "{host1}: 숙박 시설은?\n{host2}: 최고급 {hotel}, {meals}까지 완벽합니다.",
-                        flight: "{host1}: 항공 서비스는?\n{host2}: 프리미엄 {airline}, {departure_dates} 맞춤 출발.",
-                        price: "{host1}: 투자 가치는?\n{host2}: {includes} 포함 {price}, 프리미엄의 가치입니다.",
-                        perks: "{host1}: VIP 혜택은?\n{host2}: {perks} 특전, {cautions} 준비로 완벽하게.",
-                        ending: "{host1}: 럭셔리 골프의 모든 것\n{host2}: 지금 바로 확인하세요."
-                    }
-                }
-            },
-            leisure: {
-                // 휴양 여행 템플릿들...
-                friendly: {
-                    one_host: {
-                        intro: "안녕하세요! 힐링이 필요한 분들을 위한 특별한 여행을 준비했어요.",
-                        core: "{destination} {duration} 휴양 여행! {hotel}에서 완전한 힐링을 경험하세요.",
-                        hotel: "숙박은 {hotel}에서 하시고, {meals}로 맛있는 식사까지!",
-                        flight: "{airline}으로 편리하게! {departure_dates} 중에 출발하세요.",
-                        price: "{includes} 모두 포함해서 {price}에 제공해드려요!",
-                        perks: "특별히 {perks} 혜택도! {cautions} 확인해주세요.",
-                        ending: "완벽한 힐링 여행, 지금 바로 확인하세요!"
-                    },
-                    two_hosts: {
-                        intro: "{host1}: 안녕하세요! {host1}입니다.\n{host2}: {host2}예요! 힐링 여행 얘기해볼게요!",
-                        core: "{host1}: {destination} 휴양이네요!\n{host2}: 네! {hotel}에서 완전 힐링해요!",
-                        hotel: "{host1}: 어디서 쉬나요?\n{host2}: {hotel}이에요! {meals}도 맛있어요!",
-                        flight: "{host1}: 어떻게 가나요?\n{host2}: {airline}으로 편하게! {departure_dates} 출발해요!",
-                        price: "{host1}: 얼마예요?\n{host2}: {includes} 다 포함 {price}!",
-                        perks: "{host1}: 혜택 있어요?\n{host2}: 당연히! {perks} 드려요! {cautions} 확인하세요!",
-                        ending: "{host1}: 힐링 여행은\n{host2}: 지금 바로 확인하세요!"
-                    }
-                }
-            },
-            package: {
-                // 패키지 여행 템플릿들...
-                friendly: {
-                    one_host: {
-                        intro: "안녕하세요! 알찬 패키지 여행을 소개해드릴게요!",
-                        core: "{destination} {duration} 패키지 투어! 모든 일정이 완벽하게 준비되어 있어요.",
-                        hotel: "{hotel}에서 편안하게 쉬시고, {meals}까지 준비돼 있어서 걱정 없어요!",
-                        flight: "{airline}으로 안전하고 편리하게! {departure_dates} 중 선택하세요.",
-                        price: "{includes} 모든 것 포함해서 {price}! 정말 합리적이에요!",
-                        perks: "특별 혜택 {perks}도 드리고, {cautions} 꼭 확인해주세요!",
-                        ending: "완벽한 패키지 여행! 지금 바로 신청하세요!"
-                    },
-                    two_hosts: {
-                        intro: "{host1}: 안녕하세요! {host1}입니다!\n{host2}: {host2}예요! 패키지 여행 소개해드릴게요!",
-                        core: "{host1}: {destination} 패키지네요!\n{host2}: 맞아요! {duration} 동안 모든 게 준비되어 있어요!",
-                        hotel: "{host1}: 숙박은 어떻게 되나요?\n{host2}: {hotel}에서 {meals}까지! 완벽해요!",
-                        flight: "{host1}: 항공편은요?\n{host2}: {airline}으로 안전하게! {departure_dates} 출발이에요!",
-                        price: "{host1}: 가격이 궁금해요!\n{host2}: {includes} 다 포함 {price}! 합리적이에요!",
-                        perks: "{host1}: 혜택도 있나요?\n{host2}: 네! {perks} 드려요! {cautions} 체크하세요!",
-                        ending: "{host1}: 완벽한 패키지는\n{host2}: 지금 바로 신청하세요!"
-                    }
-                }
-            }
-        };
-
-        // 기본값 설정
-        const selectedTemplate = templates[target] || templates.golf;
-        const toneTemplate = selectedTemplate[tone] || selectedTemplate.friendly;
-        return toneTemplate[style] || toneTemplate.one_host;
-    }
-
-    populateTemplate(template, data, hostNames = null) {
-        const sections = [
-            { time: "00:00-00:05", title: "인트로", content: template.intro },
-            { time: "00:05-00:15", title: "상품 핵심", content: template.core },
-            { time: "00:15-00:25", title: "숙박&편의", content: template.hotel },
-            { time: "00:25-00:35", title: "항공&조건", content: template.flight },
-            { time: "00:35-00:45", title: "포함&가격", content: template.price },
-            { time: "00:45-00:55", title: "특전 및 유의", content: template.perks },
-            { time: "00:55-01:00", title: "엔딩", content: template.ending }
-        ];
-
-        return sections.map(section => {
-            let content = section.content;
+    async callGPTAPI(params) {
+        try {
+            // 로딩 상태 표시
+            console.log('Calling GPT API with params:', params);
             
-            // 데이터 치환
-            Object.entries(data).forEach(([key, value]) => {
-                const placeholder = `{${key}}`;
-                if (Array.isArray(value)) {
-                    content = content.replace(placeholder, value.slice(0, 3).join(', '));
-                } else {
-                    content = content.replace(placeholder, value || '');
-                }
+            const response = await fetch('/api/generate-script', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(params)
             });
-
-            // 호스트 이름 치환 (2인 진행용)
-            if (hostNames) {
-                content = content.replace(/{host1}/g, hostNames.host1 || '진행자1');
-                content = content.replace(/{host2}/g, hostNames.host2 || '진행자2');
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
-
-            return `[${section.time}] ${section.title}\n${content}`;
-        }).join('\n\n');
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                console.log('GPT API Success:', result);
+                return result.script;
+            } else {
+                throw new Error(result.error || 'Unknown API error');
+            }
+        } catch (error) {
+            console.error('GPT API Error:', error);
+            
+            // 실패시 기존 템플릿으로 폴백
+            console.log('Falling back to template system');
+            return this.getShoppingHostTemplate(
+                params.data, 
+                params.tone, 
+                params.target, 
+                params.hostStyle, 
+                params.style, 
+                params.hostNames
+            );
+        }
     }
 
     getShoppingHostTemplate(data, tone, target, hostStyle, scriptType, hostNames = null) {
@@ -799,47 +697,6 @@ class AIeodingApp {
 
             return `[${section.time}] ${section.title}\n${content}`;
         }).join('\n\n');
-    }
-
-    async callGPTAPI(params) {
-        try {
-            // 로딩 상태 표시
-            console.log('Calling GPT API with params:', params);
-            
-            const response = await fetch('/api/generate-script', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(params)
-            });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            const result = await response.json();
-            
-            if (result.success) {
-                console.log('GPT API Success:', result);
-                return result.script;
-            } else {
-                throw new Error(result.error || 'Unknown API error');
-            }
-        } catch (error) {
-            console.error('GPT API Error:', error);
-            
-            // 실패시 기존 템플릿으로 폴백
-            console.log('Falling back to template system');
-            return this.getShoppingHostTemplate(
-                params.data, 
-                params.tone, 
-                params.target, 
-                params.hostStyle, 
-                params.style, 
-                params.hostNames
-            );
-        }
     }
 
     async createFolderAndSaveScript(scriptType, scripts, duration) {
@@ -1377,9 +1234,12 @@ class AIeodingApp {
         }
     }
 
-
-
-
+    stop() {
+        this.tts.synth.cancel();
+        this.tts.isPlaying = false;
+        this.tts.isPaused = false;
+        this.resetProgress();
+    }
 
     startProgressTracking() {
         // Estimate total duration based on text length and speech rate
