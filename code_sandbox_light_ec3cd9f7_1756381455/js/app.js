@@ -321,21 +321,32 @@ class AIeodingApp {
         document.getElementById('generate-script-btn').disabled = true;
         document.getElementById('generate-script-btn').innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>생성 중...';
 
-        // 목업 대본 생성 (실제로는 AI API 호출)
-        setTimeout(() => {
-            this.createMockScript(scriptType, tone, target, duration, hostNames);
-        }, 3000);
+        // 실제 GPT API로 대본 생성
+        try {
+            await this.createMockScript(scriptType, tone, target, duration, hostNames);
+        } catch (error) {
+            console.error('Script generation error:', error);
+            alert('대본 생성 중 오류가 발생했습니다. 다시 시도해주세요.');
+            
+            // Reset generate button
+            document.getElementById('generate-script-btn').disabled = false;
+            document.getElementById('generate-script-btn').innerHTML = '<i class="fas fa-magic mr-2"></i>대본 생성하기';
+        }
     }
 
-    createMockScript(scriptType, tone, target, duration, hostNames) {
-        // 1인 진행 대본
-        const oneHostScript = this.generateOneHostScript();
-        
-        // 2인 진행 대본
-        const twoHostScript = this.generateTwoHostScript(hostNames);
-        
-        // Create folder and save script
-        this.createFolderAndSaveScript(scriptType, { oneHostScript, twoHostScript }, duration);
+    async createMockScript(scriptType, tone, target, duration, hostNames) {
+        try {
+            // 로딩 표시
+            document.getElementById('generate-script-btn').innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>AI 대본 생성 중...';
+            
+            // 1인 진행 대본 (GPT API 호출)
+            const oneHostScript = await this.generateOneHostScript();
+            
+            // 2인 진행 대본 (GPT API 호출)
+            const twoHostScript = await this.generateTwoHostScript(hostNames);
+            
+            // Create folder and save script
+            await this.createFolderAndSaveScript(scriptType, { oneHostScript, twoHostScript }, duration);
         
         // Show results
         document.getElementById('script-results-section').classList.remove('hidden');
@@ -357,24 +368,43 @@ class AIeodingApp {
         document.getElementById('script-results-section').scrollIntoView({ behavior: 'smooth' });
     }
 
-    generateOneHostScript() {
+    async generateOneHostScript() {
         const data = this.currentParsedData;
         const tone = document.getElementById('tone-select').value;
         const target = document.getElementById('target-select').value;
         const hostStyle = document.getElementById('host-style-select').value;
+        const structureType = document.getElementById('structure-type-select').value;
+        const duration = parseInt(document.getElementById('duration-select').value);
         
-        // Get shopping host style template
-        return this.getShoppingHostTemplate(data, tone, target, hostStyle, 'one_host');
+        return await this.callGPTAPI({
+            data,
+            style: 'one_host',
+            tone,
+            target, 
+            hostStyle,
+            structureType,
+            duration
+        });
     }
 
-    generateTwoHostScript(hostNames) {
+    async generateTwoHostScript(hostNames) {
         const data = this.currentParsedData;
         const tone = document.getElementById('tone-select').value;
         const target = document.getElementById('target-select').value;
         const hostStyle = document.getElementById('host-style-select').value;
+        const structureType = document.getElementById('structure-type-select').value;
+        const duration = parseInt(document.getElementById('duration-select').value);
         
-        // Get shopping host style template
-        return this.getShoppingHostTemplate(data, tone, target, hostStyle, 'two_hosts', hostNames);
+        return await this.callGPTAPI({
+            data,
+            style: 'two_hosts',
+            tone,
+            target,
+            hostStyle,
+            structureType,
+            duration,
+            hostNames
+        });
     }
 
     getScriptTemplate(target, tone, style) {
@@ -530,25 +560,74 @@ class AIeodingApp {
     }
 
     getShoppingHostTemplate(data, tone, target, hostStyle, scriptType, hostNames = null) {
+        const structureType = document.getElementById('structure-type-select').value;
         const templates = {
             passionate: { // 🔥 열정적 홈쇼핑 스타일
                 one_host: {
                     intro: "여러분 안녕하세요! 와, 오늘 정말 놀라운 여행 상품 하나 가져왔어요!",
+                    intro_90: "여러분 안녕하세요! 와, 오늘 정말 놀라운 여행 상품 하나 가져왔어요! 진짜 이건 놓치면 안 되는 기회라고 말씀드리고 싶어요!",
                     core: "지금 보고 계신 게 바로 {destination} {duration}! 어머 이건 진짜 대박이에요! {golf_course}에서 {rounds}를 치실 수 있다고요? 이 가격에?",
+                    core_90: "지금 보고 계신 게 바로 {destination} {duration}! 어머 이건 진짜 대박이에요! {golf_course}에서 {rounds}를 치실 수 있다고요? 이 가격에? 여러분, 이런 곳에서 골프 치는 게 얼마나 특별한 경험인지 아세요? 정말 한 번 가보시면 평생 잊지 못할 추억이 될 거예요!",
                     hotel: "그런데 여러분, 여기서 끝이 아니에요! 숙박은 어디냐구요? {hotel}이에요! 어머 이 호텔 얼마나 좋은지 아세요? {meals}까지 다 포함이라고요!",
+                    hotel_90: "그런데 여러분, 여기서 끝이 아니에요! 숙박은 어디냐구요? {hotel}이에요! 어머 이 호텔 얼마나 좋은지 아세요? 5성급 럭셔리 호텔이거든요! {meals}까지 다 포함이라고요! 특히 조식 뷔페는 정말 환상적이에요. 현지 음식부터 인터내셔널 메뉴까지 다양하게 준비되어 있어요!",
                     flight: "항공편도 완전 럭셔리해요! {airline}으로 편안~하게 가시고요, {departure_dates} 중에 언제든지 출발하실 수 있어요! 이건 진짜 기회예요!",
+                    flight_90: "항공편도 완전 럭셔리해요! {airline}으로 편안~하게 가시고요, {departure_dates} 중에 언제든지 출발하실 수 있어요! 직항편이니까 피로감도 적고요, 기내식도 맛있다고 소문났어요! 좌석도 넓어서 정말 편안하게 가실 수 있어요!",
                     price: "그런데 가격이 얼마일 것 같으세요? {includes} 이 모든 게 다 포함되어서... 어머 깜짝 놀라지 마세요... 단돈 {price}! 말도 안 되는 가격이죠?",
+                    price_90: "그런데 가격이 얼마일 것 같으세요? {includes} 이 모든 게 다 포함되어서... 어머 깜짝 놀라지 마세요... 단돈 {price}! 말도 안 되는 가격이죠? 다른 업체들 비교해보세요! 이런 조건으로 이 가격 절대 찾을 수 없어요! 정말 파격적인 혜택이라고 자신 있게 말씀드릴 수 있어요!",
                     perks: "아직도 더 있어요! 특별 혜택으로 {perks} 이런 것도 다 드린다고요! 하지만 {cautions} 이건 꼭 미리 준비해주세요!",
-                    ending: "여러분, 이런 기회는 정말 흔하지 않아요! 지금 바로 아래 링크 클릭하세요!"
+                    perks_90: "아직도 더 있어요! 특별 혜택으로 {perks} 이런 것도 다 드린다고요! 그리고 공항 픽업 서비스, 현지 가이드 동행, 여행자 보험까지! 정말 하나부터 열까지 다 신경써드려요! 하지만 {cautions} 이건 꼭 미리 준비해주세요!",
+                    ending: "여러분, 이런 기회는 정말 흔하지 않아요! 지금 바로 아래 링크 클릭하세요!",
+                    ending_90: "여러분, 이런 기회는 정말 흔하지 않아요! 매일 문의 전화가 쇄도하고 있어요! 선착순 마감이니까 망설이지 마시고 지금 바로 아래 링크 클릭하세요! 후회하지 않으실 거예요!",
+                    
+                    // 스토리텔링형 템플릿
+                    hook: "여러분, 혹시 이런 경험 있으세요? 일상에 지쳐서 정말 멀리 떠나고 싶을 때...",
+                    story: "바로 저도 그랬어요! 그런데 {destination}에서 {duration} 보내고 완전히 달라졌거든요!",
+                    experience: "{golf_course}에서 {rounds} 치면서 느꼈던 그 자유로움, {hotel}에서의 여유로운 아침...",
+                    benefits: "그런데 이 모든 걸 {price}에 경험할 수 있다면? {includes} 모든 게 포함되어서!",
+                    emotion: "정말 인생이 바뀌는 경험이에요. {perks} 이런 특별한 혜택까지!",
+                    cta: "지금 이 순간을 놓치지 마세요. 아래 링크로 새로운 인생을 시작하세요!",
+                    
+                    // 숏폼 최적화형 템플릿  
+                    impact: "잠깐! {price}에 {destination} {duration}? 이거 실화냐고요?",
+                    key_points: "{golf_course} {rounds}, {hotel} 숙박, {airline} 직항까지!",
+                    hidden_benefits: "그런데 여기서 끝이 아니에요! {perks} 이것도 다 무료!",
+                    shocking_price: "{includes} 전부 포함해서 단돈 {price}! 다른 곳과 비교해보세요!",
+                    special_terms: "{departure_dates} 한정! {cautions} 준비만 하면 끝!",
+                    viral_element: "친구들한테 자랑할 준비 되셨나요? 이런 혜택 어디서도 못 봤을걸요!",
+                    urgent_cta: "지금 안 누르면 후회해요! 바로 아래 링크 클릭!"
                 },
                 two_hosts: {
                     intro: "{host1}: 여러분 안녕하세요! {host1}입니다!\n{host2}: {host2}예요! 오늘 진짜 대박 상품 가져왔어요!",
+                    intro_90: "{host1}: 여러분 안녕하세요! {host1}입니다!\n{host2}: {host2}예요! 오늘 진짜 대박 상품 가져왔어요!\n{host1}: 정말 놓치면 후회할 상품이에요!\n{host2}: 맞아요! 지금까지 이런 조건은 본 적이 없어요!",
                     core: "{host1}: 와 {host2}씨, 이거 진짜 대단한데요?\n{host2}: 맞아요! {destination} {duration}인데, {golf_course}에서 {rounds}를 친다고요!",
+                    core_90: "{host1}: 와 {host2}씨, 이거 진짜 대단한데요?\n{host2}: 맞아요! {destination} {duration}인데, {golf_course}에서 {rounds}를 친다고요!\n{host1}: 이 골프장이 얼마나 유명한지 아세요?\n{host2}: 프로 선수들도 경기하는 곳이에요! 코스 컨디션도 최고래요!",
                     hotel: "{host1}: 숙박은 어디서 하는 거예요?\n{host2}: 어머, {hotel}이에요! 이 호텔이 얼마나 좋은지! {meals}까지 다 포함이래요!",
+                    hotel_90: "{host1}: 숙박은 어디서 하는 거예요?\n{host2}: 어머, {hotel}이에요! 이 호텔이 얼마나 좋은지!\n{host1}: 5성급 리조트죠?\n{host2}: 맞아요! {meals}까지 다 포함이고, 수영장, 스파, 피트니스센터까지!",
                     flight: "{host1}: 항공편은 어떻게 되나요?\n{host2}: {airline}으로 완전 편안하게! {departure_dates} 중에 언제든 출발 가능해요!",
+                    flight_90: "{host1}: 항공편은 어떻게 되나요?\n{host2}: {airline}으로 완전 편안하게! {departure_dates} 중에 언제든 출발 가능해요!\n{host1}: 직항편이니까 편리하겠네요!\n{host2}: 맞아요! 기내식도 맛있고, 좌석도 넓어서 피로감이 적어요!",
                     price: "{host1}: 가격이 궁금한데요?\n{host2}: 깜짝 놀라지 마세요! {includes} 다 포함해서 {price}! 말도 안 되죠?",
+                    price_90: "{host1}: 가격이 궁금한데요?\n{host2}: 깜짝 놀라지 마세요! {includes} 다 포함해서 {price}! 말도 안 되죠?\n{host1}: 다른 업체 견적 받아봤는데 이 가격이 말이 돼요?\n{host2}: 저희가 특가로 준비한 거라 정말 파격적이에요!",
                     perks: "{host1}: 혜택도 더 있나요?\n{host2}: 당연하죠! {perks} 이런 것도 다 드려요! 단, {cautions} 이건 꼭 확인하세요!",
-                    ending: "{host1}: 이런 기회는 정말 흔하지 않아요!\n{host2}: 지금 바로 아래 링크 클릭하세요!"
+                    perks_90: "{host1}: 혜택도 더 있나요?\n{host2}: 당연하죠! {perks} 이런 것도 다 드려요!\n{host1}: 와, 이것까지 다 포함이에요?\n{host2}: 네! 그리고 {cautions} 이건 꼭 미리 준비해주세요!",
+                    ending: "{host1}: 이런 기회는 정말 흔하지 않아요!\n{host2}: 지금 바로 아래 링크 클릭하세요!",
+                    ending_90: "{host1}: 이런 기회는 정말 흔하지 않아요!\n{host2}: 매일 문의가 쇄도하고 있어서 조기 마감될 수 있어요!\n{host1}: 망설이지 마시고요!\n{host2}: 지금 바로 아래 링크 클릭하세요!",
+                    
+                    // 스토리텔링형 2인 진행
+                    hook: "{host1}: {host2}씨, 요즘 일상이 너무 지루하지 않나요?\n{host2}: 맞아요! 그래서 제가 다녀온 {destination} 이야기를 해드리려고요!",
+                    story: "{host1}: 정말요? 어떠셨어요?\n{host2}: {duration} 동안 정말 인생이 바뀌는 경험이었어요!",
+                    experience: "{host1}: 구체적으로 어떤 점이요?\n{host2}: {golf_course}에서 {rounds} 치면서, {hotel}에서 여유롭게 쉬면서...",
+                    benefits: "{host1}: 비용이 많이 들었을 것 같은데요?\n{host2}: 그게 아니에요! {price}에 {includes} 모든 게 포함이었어요!",
+                    emotion: "{host1}: 정말 특별한 경험이었겠네요!\n{host2}: 네! {perks} 이런 혜택까지 있어서 더 좋았어요!",
+                    cta: "{host1}: 듣기만 해도 가고 싶어져요!\n{host2}: 아래 링크로 여러분도 경험해보세요!",
+                    
+                    // 숏폼 최적화형 2인 진행
+                    impact: "{host1}: 잠깐! 이거 실화예요?\n{host2}: {price}에 {destination} {duration}! 진짜예요!",
+                    key_points: "{host1}: 뭐가 포함된 거예요?\n{host2}: {golf_course} {rounds}, {hotel} 숙박, {airline} 직항까지!",
+                    hidden_benefits: "{host1}: 설마 이게 다는 아니겠죠?\n{host2}: 당연히 더 있죠! {perks} 이것도 다 무료!",
+                    shocking_price: "{host1}: 다른 곳과 비교해봤어요?\n{host2}: {includes} 전부 포함 {price}! 어디서도 이 가격 없어요!",
+                    special_terms: "{host1}: 언제까지 가능한 거예요?\n{host2}: {departure_dates} 한정! {cautions} 준비만 하면 끝!",
+                    viral_element: "{host1}: 친구들이 부러워하겠어요!\n{host2}: 당연하죠! 이런 혜택 어디서 봤겠어요!",
+                    urgent_cta: "{host1}: 지금 안 누르면 후회할 것 같아요!\n{host2}: 맞아요! 바로 아래 링크 클릭!"
                 }
             },
             friendly: { // 😊 친근한 라이브커머스 스타일
@@ -596,19 +675,111 @@ class AIeodingApp {
         const selectedTemplate = templates[hostStyle] || templates.passionate;
         const styleTemplate = selectedTemplate[scriptType] || selectedTemplate.one_host;
         
-        // 템플릿 섹션 구성
-        const sections = [
-            { time: "00:00-00:05", title: "인트로", content: styleTemplate.intro },
-            { time: "00:05-00:15", title: "상품 핵심", content: styleTemplate.core },
-            { time: "00:15-00:25", title: "숙박&편의", content: styleTemplate.hotel },
-            { time: "00:25-00:35", title: "항공&조건", content: styleTemplate.flight },
-            { time: "00:35-00:45", title: "포함&가격", content: styleTemplate.price },
-            { time: "00:45-00:55", title: "특전 및 유의", content: styleTemplate.perks },
-            { time: "00:55-01:00", title: "엔딩", content: styleTemplate.ending }
-        ];
+        // 대본 길이에 따른 시간 구간 설정
+        const duration = parseInt(document.getElementById('duration-select').value) || 60;
+        let sections = [];
+
+        // 구성 타입별 섹션 구조
+        if (structureType === 'storytelling') {
+            // 스토리텔링형 구조
+            if (duration === 90) {
+                sections = [
+                    { time: "00:00-00:10", title: "감성 훅", content: styleTemplate.hook },
+                    { time: "00:10-00:25", title: "스토리 전개", content: styleTemplate.story },
+                    { time: "00:25-00:40", title: "여행 경험", content: styleTemplate.experience },
+                    { time: "00:40-00:55", title: "핵심 혜택", content: styleTemplate.benefits },
+                    { time: "00:55-01:10", title: "감정 몰입", content: styleTemplate.emotion },
+                    { time: "01:10-01:30", title: "행동 유도", content: styleTemplate.cta }
+                ];
+            } else {
+                sections = [
+                    { time: "00:00-00:08", title: "감성 훅", content: styleTemplate.hook },
+                    { time: "00:08-00:18", title: "스토리 전개", content: styleTemplate.story },
+                    { time: "00:18-00:30", title: "여행 경험", content: styleTemplate.experience },
+                    { time: "00:30-00:42", title: "핵심 혜택", content: styleTemplate.benefits },
+                    { time: "00:42-00:52", title: "감정 몰입", content: styleTemplate.emotion },
+                    { time: "00:52-01:00", title: "행동 유도", content: styleTemplate.cta }
+                ];
+            }
+        } else if (structureType === 'viral') {
+            // 숏폼 최적화형 구조
+            if (duration === 90) {
+                sections = [
+                    { time: "00:00-00:05", title: "임팩트 훅", content: styleTemplate.impact },
+                    { time: "00:05-00:20", title: "핵심 포인트", content: styleTemplate.key_points },
+                    { time: "00:20-00:35", title: "숨은 혜택", content: styleTemplate.hidden_benefits },
+                    { time: "00:35-00:50", title: "충격 가격", content: styleTemplate.shocking_price },
+                    { time: "00:50-01:05", title: "특별 조건", content: styleTemplate.special_terms },
+                    { time: "01:05-01:20", title: "바이럴 요소", content: styleTemplate.viral_element },
+                    { time: "01:20-01:30", title: "긴급 CTA", content: styleTemplate.urgent_cta }
+                ];
+            } else {
+                sections = [
+                    { time: "00:00-00:03", title: "임팩트 훅", content: styleTemplate.impact },
+                    { time: "00:03-00:15", title: "핵심 포인트", content: styleTemplate.key_points },
+                    { time: "00:15-00:25", title: "숨은 혜택", content: styleTemplate.hidden_benefits },
+                    { time: "00:25-00:35", title: "충격 가격", content: styleTemplate.shocking_price },
+                    { time: "00:35-00:45", title: "특별 조건", content: styleTemplate.special_terms },
+                    { time: "00:45-00:55", title: "바이럴 요소", content: styleTemplate.viral_element },
+                    { time: "00:55-01:00", title: "긴급 CTA", content: styleTemplate.urgent_cta }
+                ];
+            }
+        } else {
+            // 기본형 (홈쇼핑 구조) - 기존 구조 유지
+            if (duration === 90) {
+                sections = [
+                    { time: "00:00-00:08", title: "인트로", content: styleTemplate.intro },
+                    { time: "00:08-00:22", title: "상품 핵심", content: styleTemplate.core },
+                    { time: "00:22-00:36", title: "숙박&편의", content: styleTemplate.hotel },
+                    { time: "00:36-00:50", title: "항공&조건", content: styleTemplate.flight },
+                    { time: "00:50-01:04", title: "포함&가격", content: styleTemplate.price },
+                    { time: "01:04-01:18", title: "특전 및 유의", content: styleTemplate.perks },
+                    { time: "01:18-01:30", title: "엔딩", content: styleTemplate.ending }
+                ];
+            } else if (duration === 55) {
+                sections = [
+                    { time: "00:00-00:04", title: "인트로", content: styleTemplate.intro },
+                    { time: "00:04-00:12", title: "상품 핵심", content: styleTemplate.core },
+                    { time: "00:12-00:20", title: "숙박&편의", content: styleTemplate.hotel },
+                    { time: "00:20-00:28", title: "항공&조건", content: styleTemplate.flight },
+                    { time: "00:28-00:36", title: "포함&가격", content: styleTemplate.price },
+                    { time: "00:36-00:44", title: "특전 및 유의", content: styleTemplate.perks },
+                    { time: "00:44-00:55", title: "엔딩", content: styleTemplate.ending }
+                ];
+            } else if (duration === 65) {
+                sections = [
+                    { time: "00:00-00:06", title: "인트로", content: styleTemplate.intro },
+                    { time: "00:06-00:16", title: "상품 핵심", content: styleTemplate.core },
+                    { time: "00:16-00:26", title: "숙박&편의", content: styleTemplate.hotel },
+                    { time: "00:26-00:36", title: "항공&조건", content: styleTemplate.flight },
+                    { time: "00:36-00:46", title: "포함&가격", content: styleTemplate.price },
+                    { time: "00:46-00:56", title: "특전 및 유의", content: styleTemplate.perks },
+                    { time: "00:56-01:05", title: "엔딩", content: styleTemplate.ending }
+                ];
+            } else {
+                sections = [
+                    { time: "00:00-00:05", title: "인트로", content: styleTemplate.intro },
+                    { time: "00:05-00:15", title: "상품 핵심", content: styleTemplate.core },
+                    { time: "00:15-00:25", title: "숙박&편의", content: styleTemplate.hotel },
+                    { time: "00:25-00:35", title: "항공&조건", content: styleTemplate.flight },
+                    { time: "00:35-00:45", title: "포함&가격", content: styleTemplate.price },
+                    { time: "00:45-00:55", title: "특전 및 유의", content: styleTemplate.perks },
+                    { time: "00:55-01:00", title: "엔딩", content: styleTemplate.ending }
+                ];
+            }
+        }
 
         return sections.map(section => {
             let content = section.content;
+            
+            // 90초 대본일 경우 확장 템플릿 사용
+            if (duration === 90) {
+                const sectionKey = section.title.toLowerCase().replace(/[&\s]/g, '_');
+                const extendedKey = sectionKey + '_90';
+                if (styleTemplate[extendedKey]) {
+                    content = styleTemplate[extendedKey];
+                }
+            }
             
             // 데이터 치환
             Object.entries(data).forEach(([key, value]) => {
@@ -628,6 +799,47 @@ class AIeodingApp {
 
             return `[${section.time}] ${section.title}\n${content}`;
         }).join('\n\n');
+    }
+
+    async callGPTAPI(params) {
+        try {
+            // 로딩 상태 표시
+            console.log('Calling GPT API with params:', params);
+            
+            const response = await fetch('/api/generate-script', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(params)
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                console.log('GPT API Success:', result);
+                return result.script;
+            } else {
+                throw new Error(result.error || 'Unknown API error');
+            }
+        } catch (error) {
+            console.error('GPT API Error:', error);
+            
+            // 실패시 기존 템플릿으로 폴백
+            console.log('Falling back to template system');
+            return this.getShoppingHostTemplate(
+                params.data, 
+                params.tone, 
+                params.target, 
+                params.hostStyle, 
+                params.style, 
+                params.hostNames
+            );
+        }
     }
 
     async createFolderAndSaveScript(scriptType, scripts, duration) {
@@ -1043,11 +1255,12 @@ class AIeodingApp {
         });
         
         document.getElementById('voice-stop')?.addEventListener('click', () => {
-            this.stopSpeech();
+            this.stop();
         });
         
         document.getElementById('close-voice-control')?.addEventListener('click', () => {
             this.hideVoiceControl();
+            this.stop();
         });
         
         // Voice settings
@@ -1093,7 +1306,9 @@ class AIeodingApp {
 
     hideVoiceControl() {
         document.getElementById('voice-control-panel').classList.add('hidden');
-        this.stopSpeech();
+        if (window.ttsManager) {
+            window.ttsManager.stop();
+        }
     }
 
     startSpeech() {
@@ -1120,14 +1335,14 @@ class AIeodingApp {
         this.tts.utterance.onstart = () => {
             this.tts.isPlaying = true;
             this.tts.isPaused = false;
-            this.updatePlayButton(true);
+    
             this.startProgressTracking();
         };
         
         this.tts.utterance.onend = () => {
             this.tts.isPlaying = false;
             this.tts.isPaused = false;
-            this.updatePlayButton(false);
+    
             this.resetProgress();
         };
         
@@ -1135,7 +1350,7 @@ class AIeodingApp {
             console.error('Speech synthesis error:', event);
             this.tts.isPlaying = false;
             this.tts.isPaused = false;
-            this.updatePlayButton(false);
+    
             alert('음성 재생 중 오류가 발생했습니다.');
         };
         
@@ -1152,32 +1367,19 @@ class AIeodingApp {
             this.tts.synth.pause();
             this.tts.isPaused = true;
             this.tts.isPlaying = false;
-            this.updatePlayButton(false);
+    
         } else if (this.tts.isPaused) {
             // Resume
             this.tts.synth.resume();
             this.tts.isPaused = false;
             this.tts.isPlaying = true;
-            this.updatePlayButton(true);
+    
         }
     }
 
-    stopSpeech() {
-        if (this.tts.synth.speaking) {
-            this.tts.synth.cancel();
-        }
-        this.tts.isPlaying = false;
-        this.tts.isPaused = false;
-        this.updatePlayButton(false);
-        this.resetProgress();
-    }
 
-    updatePlayButton(isPlaying) {
-        const playIcon = document.getElementById('voice-play-icon');
-        if (playIcon) {
-            playIcon.className = isPlaying ? 'fas fa-pause' : 'fas fa-play';
-        }
-    }
+
+
 
     startProgressTracking() {
         // Estimate total duration based on text length and speech rate
@@ -1427,8 +1629,11 @@ class TTSManager {
                     content: ''
                 };
             } else if (currentSection && line) {
-                // Add content to current section (only actual dialogue, not the title)
-                currentSection.content += (currentSection.content ? ' ' : '') + line;
+                // Process line to extract only dialogue content
+                let processedLine = this.extractDialogueOnly(line);
+                if (processedLine) {
+                    currentSection.content += (currentSection.content ? ' ' : '') + processedLine;
+                }
             }
         });
         
@@ -1436,6 +1641,23 @@ class TTSManager {
         if (currentSection) {
             this.sections.push(currentSection);
         }
+    }
+
+    extractDialogueOnly(line) {
+        // Remove host names (e.g., "진행자1:", "김여행:", etc.)
+        let cleanLine = line.replace(/^[^:]+:\s*/, '');
+        
+        // Skip if line is empty after removing host name
+        if (!cleanLine.trim()) {
+            return '';
+        }
+        
+        // Skip if line contains only category markers or time codes
+        if (cleanLine.match(/^\[.*\]/) || cleanLine.match(/^(인트로|상품|핵심|숙박|편의|항공|조건|포함|가격|특전|유의|엔딩)$/)) {
+            return '';
+        }
+        
+        return cleanLine;
     }
 
     playCurrentSection() {
