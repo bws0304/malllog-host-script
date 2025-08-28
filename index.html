@@ -444,6 +444,1041 @@
     </div>
 
     <!-- JavaScript -->
-    <script src="js/app.js"></script>
+ <script>
+// AIeoding - 1분 쇼호스트 대본 생성기
+// Main Application JavaScript
+
+class AIeodingApp {
+    constructor() {
+        this.currentUser = null;
+        this.currentProduct = null;
+        this.currentParsedData = null;
+        this.currentView = 'generator';
+        
+        // TTS properties
+        this.tts = {
+            synth: window.speechSynthesis,
+            utterance: null,
+            isPlaying: false,
+            isPaused: false,
+            voices: [],
+            currentScript: '',
+            currentScriptType: 'one-host'
+        };
+        
+        this.init();
+    }
+
+    init() {
+        this.setupEventListeners();
+        this.initTTS();
+        this.loadMockUser(); // 임시로 목업 사용자 로드
+        this.loadMockLibraryData();
+    }
+
+    setupEventListeners() {
+        // Navigation
+        document.getElementById('nav-generator').addEventListener('click', (e) => {
+            e.preventDefault();
+            this.switchView('generator');
+        });
+        
+        document.getElementById('nav-library').addEventListener('click', (e) => {
+            e.preventDefault();
+            this.switchView('library');
+        });
+
+        // URL Parsing
+        document.getElementById('parse-btn').addEventListener('click', () => {
+            this.parseURL();
+        });
+
+        document.getElementById('reset-btn').addEventListener('click', () => {
+            this.showResetModal();
+        });
+
+        // Script Type Change
+        document.querySelectorAll('input[name="script-type"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                this.handleScriptTypeChange(e.target.value);
+            });
+        });
+
+        // Generate Script
+        document.getElementById('generate-script-btn').addEventListener('click', () => {
+            this.generateScript();
+        });
+
+        // Tab Switching
+        document.getElementById('tab-one-host').addEventListener('click', () => {
+            this.switchScriptTab('one-host');
+        });
+        
+        document.getElementById('tab-two-host').addEventListener('click', () => {
+            this.switchScriptTab('two-host');
+        });
+
+        // Modal Handlers
+        document.getElementById('edit-fields-btn').addEventListener('click', () => {
+            this.showEditFieldsModal();
+        });
+
+        document.getElementById('close-edit-modal').addEventListener('click', () => {
+            this.hideEditFieldsModal();
+        });
+
+        document.getElementById('cancel-edit').addEventListener('click', () => {
+            this.hideEditFieldsModal();
+        });
+
+        document.getElementById('save-edit').addEventListener('click', () => {
+            this.saveEditedFields();
+        });
+
+        // Reset Modal
+        document.getElementById('cancel-reset').addEventListener('click', () => {
+            this.hideResetModal();
+        });
+
+        document.getElementById('confirm-reset').addEventListener('click', () => {
+            this.confirmReset();
+        });
+
+        // Library Search & Filter
+        document.getElementById('library-search').addEventListener('input', (e) => {
+            this.filterLibraryData(e.target.value);
+        });
+
+        document.getElementById('library-filter').addEventListener('change', (e) => {
+            this.filterLibraryData();
+        });
+
+        // Copy & Download buttons
+        this.setupCopyAndDownloadButtons();
+        
+        // TTS Controls
+        this.setupTTSEventListeners();
+    }
+
+    // 임시 목업 사용자 로드
+    loadMockUser() {
+        this.currentUser = {
+            id: 'user-001',
+            email: 'user@example.com',
+            display_name: '김여행',
+            photo_url: 'https://via.placeholder.com/32x32/4F46E5/FFFFFF?text=김',
+            provider: 'google',
+            role: 'owner',
+            created_at: new Date().toISOString()
+        };
+        
+        this.updateUserUI();
+    }
+
+    updateUserUI() {
+        if (this.currentUser) {
+            document.getElementById('google-login-btn').classList.add('hidden');
+            document.getElementById('user-profile').classList.remove('hidden');
+            document.getElementById('user-name').textContent = this.currentUser.display_name;
+            document.getElementById('user-avatar').src = this.currentUser.photo_url;
+        }
+    }
+
+    switchView(viewName) {
+        this.currentView = viewName;
+        
+        // Update navigation
+        document.getElementById('nav-generator').classList.remove('text-blue-600', 'font-medium', 'border-b-2', 'border-blue-600');
+        document.getElementById('nav-generator').classList.add('text-gray-500', 'hover:text-gray-700');
+        
+        document.getElementById('nav-library').classList.remove('text-blue-600', 'font-medium', 'border-b-2', 'border-blue-600');
+        document.getElementById('nav-library').classList.add('text-gray-500', 'hover:text-gray-700');
+        
+        // Show/hide views
+        document.getElementById('generator-view').classList.add('hidden');
+        document.getElementById('library-view').classList.add('hidden');
+        
+        if (viewName === 'generator') {
+            document.getElementById('generator-view').classList.remove('hidden');
+            document.getElementById('nav-generator').classList.remove('text-gray-500', 'hover:text-gray-700');
+            document.getElementById('nav-generator').classList.add('text-blue-600', 'font-medium', 'border-b-2', 'border-blue-600');
+        } else if (viewName === 'library') {
+            document.getElementById('library-view').classList.remove('hidden');
+            document.getElementById('nav-library').classList.remove('text-gray-500', 'hover:text-gray-700');
+            document.getElementById('nav-library').classList.add('text-blue-600', 'font-medium', 'border-b-2', 'border-blue-600');
+            this.loadLibraryData();
+        }
+    }
+
+    async parseURL() {
+        const urlInput = document.getElementById('url-input');
+        const url = urlInput.value.trim();
+        
+        if (!url) {
+            alert('URL을 입력해주세요.');
+            return;
+        }
+
+        // Show loading state
+        document.getElementById('parsing-empty').classList.add('hidden');
+        document.getElementById('parsing-results').classList.add('hidden');
+        document.getElementById('parsing-loading').classList.remove('hidden');
+
+        // 실제 환경에서는 여기서 API 호출
+        // 목업 데이터로 시뮬레이션
+        setTimeout(() => {
+            this.simulateParsing(url);
+        }, 2000);
+    }
+
+    simulateParsing(url) {
+        // 목업 파싱 결과 생성
+        this.currentParsedData = {
+            product_name: "베트남 다낭 4박5일 골프 패키지",
+            destination: "베트남 다낭",
+            duration: "4박 5일",
+            airline: "베트남항공",
+            hotel: "풀먼 다낭 비치 리조트",
+            golf_course: "다낭 골프클럽",
+            rounds: "2라운드",
+            meals: "조식 4회, 석식 2회",
+            price: "1,890,000원",
+            departure_dates: "2024년 3월 15일 ~ 4월 30일",
+            includes: ["왕복항공료", "숙박비", "골프피", "조식", "공항세"],
+            excludes: ["개인경비", "여행자보험", "선택관광"],
+            perks: ["골프용품 렌탈 할인", "스파 20% 할인"],
+            cautions: ["여권 유효기간 6개월 이상", "골프 핸디캡 증명서 필요"]
+        };
+
+        const confidence = 0.85;
+        
+        // Hide loading, show results
+        document.getElementById('parsing-loading').classList.add('hidden');
+        document.getElementById('parsing-results').classList.remove('hidden');
+        
+        // Update confidence score
+        document.getElementById('confidence-score').textContent = Math.round(confidence * 100) + '%';
+        document.getElementById('confidence-bar').style.width = Math.round(confidence * 100) + '%';
+        
+        // Populate parsed fields
+        this.displayParsedFields();
+        
+        // Enable generate button
+        document.getElementById('generate-script-btn').disabled = false;
+        
+        // Create mock product entry
+        this.currentProduct = {
+            id: 'product-' + Date.now(),
+            source_url: url,
+            parsed_fields: JSON.stringify(this.currentParsedData),
+            parse_confidence: confidence,
+            status: 'parsed',
+            folder_id: null, // Will be created on script generation
+            created_by: this.currentUser.id,
+            created_at: new Date().toISOString()
+        };
+    }
+
+    displayParsedFields() {
+        const container = document.getElementById('parsed-fields');
+        container.innerHTML = '';
+        
+        const fieldMappings = [
+            { key: 'product_name', label: '상품명', icon: 'fas fa-tag' },
+            { key: 'destination', label: '목적지', icon: 'fas fa-map-marker-alt' },
+            { key: 'duration', label: '기간', icon: 'fas fa-calendar' },
+            { key: 'airline', label: '항공사', icon: 'fas fa-plane' },
+            { key: 'hotel', label: '숙박', icon: 'fas fa-hotel' },
+            { key: 'golf_course', label: '골프장', icon: 'fas fa-golf-ball' },
+            { key: 'rounds', label: '라운드', icon: 'fas fa-golf-ball' },
+            { key: 'price', label: '가격', icon: 'fas fa-won-sign' }
+        ];
+
+        fieldMappings.forEach(field => {
+            const value = this.currentParsedData[field.key];
+            if (value) {
+                const fieldElement = this.createParsedFieldElement(field.label, value, field.icon);
+                container.appendChild(fieldElement);
+            }
+        });
+    }
+
+    createParsedFieldElement(label, value, icon) {
+        const div = document.createElement('div');
+        div.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg';
+        
+        div.innerHTML = `
+            <div class="flex items-center space-x-3">
+                <i class="${icon} text-blue-600"></i>
+                <div>
+                    <div class="text-sm font-medium text-gray-900">${label}</div>
+                    <div class="text-sm text-gray-600">${value}</div>
+                </div>
+            </div>
+            <div class="flex items-center">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    <i class="fas fa-check mr-1"></i>확인됨
+                </span>
+            </div>
+        `;
+        
+        return div;
+    }
+
+    handleScriptTypeChange(type) {
+        const hostNamesSection = document.getElementById('host-names-section');
+        
+        if (type === 'two_hosts') {
+            hostNamesSection.classList.remove('hidden');
+        } else {
+            hostNamesSection.classList.add('hidden');
+        }
+
+        // Update tab visibility
+        const twoHostTab = document.getElementById('tab-two-host');
+        if (type === 'two_hosts') {
+            twoHostTab.style.display = 'block';
+        } else {
+            twoHostTab.style.display = 'none';
+            // Switch to one host tab if currently on two host
+            if (document.getElementById('two-host-content').classList.contains('block')) {
+                this.switchScriptTab('one-host');
+            }
+        }
+    }
+
+    async generateScript() {
+        if (!this.currentParsedData) {
+            alert('먼저 URL을 파싱해주세요.');
+            return;
+        }
+
+        // Get options
+        const scriptType = document.querySelector('input[name="script-type"]:checked').value;
+        const tone = document.getElementById('tone-select').value;
+        const target = document.getElementById('target-select').value;
+        const duration = parseInt(document.getElementById('duration-select').value);
+        
+        const hostNames = {
+            host1: document.getElementById('host1-name').value || '진행자1',
+            host2: document.getElementById('host2-name').value || '진행자2'
+        };
+
+        // Show loading
+        document.getElementById('generate-script-btn').disabled = true;
+        document.getElementById('generate-script-btn').innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>생성 중...';
+
+        try {
+            await this.createMockScript(scriptType, tone, target, duration, hostNames);
+        } catch (error) {
+            console.error('Script generation error:', error);
+            alert('대본 생성 중 오류가 발생했습니다. 다시 시도해주세요.');
+            
+            // Reset generate button
+            document.getElementById('generate-script-btn').disabled = false;
+            document.getElementById('generate-script-btn').innerHTML = '<i class="fas fa-magic mr-2"></i>대본 생성하기';
+        }
+    }
+
+    async createMockScript(scriptType, tone, target, duration, hostNames) {
+        try {
+            // 로딩 상태 표시
+            document.getElementById('generate-script-btn').innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>AI 대본 생성 중...';
+            
+            // 1인 진행 대본 생성
+            const oneHostScript = this.generateOneHostScript();
+            
+            // 2인 진행 대본 생성
+            const twoHostScript = this.generateTwoHostScript(hostNames);
+            
+            // Create folder and save script
+            await this.createFolderAndSaveScript(scriptType, { oneHostScript, twoHostScript }, duration);
+        
+        // Show results
+        document.getElementById('script-results-section').classList.remove('hidden');
+        document.getElementById('one-host-script').textContent = oneHostScript;
+        document.getElementById('two-host-script').textContent = twoHostScript;
+        
+        // Reset generate button
+        document.getElementById('generate-script-btn').disabled = false;
+        document.getElementById('generate-script-btn').innerHTML = '<i class="fas fa-magic mr-2"></i>대본 생성하기';
+        
+        // Auto-switch to appropriate tab
+        if (scriptType === 'two_hosts') {
+            this.switchScriptTab('two-host');
+        } else {
+            this.switchScriptTab('one-host');
+        }
+
+        // Scroll to results
+        document.getElementById('script-results-section').scrollIntoView({ behavior: 'smooth' });
+        } catch (error) {
+            console.error('Script generation error:', error);
+            
+            // Reset generate button
+            document.getElementById('generate-script-btn').disabled = false;
+            document.getElementById('generate-script-btn').innerHTML = '<i class="fas fa-magic mr-2"></i>대본 생성하기';
+            
+            alert('대본 생성 중 오류가 발생했습니다. 다시 시도해주세요.');
+        }
+    }
+
+    generateOneHostScript() {
+        const data = this.currentParsedData;
+        const tone = document.getElementById('tone-select').value;
+        const target = document.getElementById('target-select').value;
+        const hostStyle = document.getElementById('host-style-select').value;
+        const structureType = document.getElementById('structure-type-select').value;
+        const duration = parseInt(document.getElementById('duration-select').value);
+        
+        return this.getShoppingHostTemplate(data, tone, target, hostStyle, 'one_host', null);
+    }
+
+    generateTwoHostScript(hostNames) {
+        const data = this.currentParsedData;
+        const tone = document.getElementById('tone-select').value;
+        const target = document.getElementById('target-select').value;
+        const hostStyle = document.getElementById('host-style-select').value;
+        const structureType = document.getElementById('structure-type-select').value;
+        const duration = parseInt(document.getElementById('duration-select').value);
+        
+        return this.getShoppingHostTemplate(data, tone, target, hostStyle, 'two_hosts', hostNames);
+    }
+
+    getShoppingHostTemplate(data, tone, target, hostStyle, scriptType, hostNames = null) {
+        const structureType = document.getElementById('structure-type-select').value;
+        const templates = {
+            passionate: { // 🔥 열정적 홈쇼핑 스타일
+                one_host: {
+                    intro: "여러분 안녕하세요! 와, 오늘 정말 놀라운 여행 상품 하나 가져왔어요!",
+                    core: "지금 보고 계신 게 바로 {destination} {duration}! 어머 이건 진짜 대박이에요! {golf_course}에서 {rounds}를 치실 수 있다고요? 이 가격에?",
+                    hotel: "그런데 여러분, 여기서 끝이 아니에요! 숙박은 어디냐구요? {hotel}이에요! 어머 이 호텔 얼마나 좋은지 아세요? {meals}까지 다 포함이라고요!",
+                    flight: "항공편도 완전 럭셔리해요! {airline}으로 편안~하게 가시고요, {departure_dates} 중에 언제든지 출발하실 수 있어요! 이건 진짜 기회예요!",
+                    price: "그런데 가격이 얼마일 것 같으세요? {includes} 이 모든 게 다 포함되어서... 어머 깜짝 놀라지 마세요... 단돈 {price}! 말도 안 되는 가격이죠?",
+                    perks: "아직도 더 있어요! 특별 혜택으로 {perks} 이런 것도 다 드린다고요! 하지만 {cautions} 이건 꼭 미리 준비해주세요!",
+                    ending: "여러분, 이런 기회는 정말 흔하지 않아요! 지금 바로 아래 링크 클릭하세요!"
+                },
+                two_hosts: {
+                    intro: "{host1}: 여러분 안녕하세요! {host1}입니다!\n{host2}: {host2}예요! 오늘 진짜 대박 상품 가져왔어요!",
+                    core: "{host1}: 와 {host2}씨, 이거 진짜 대단한데요?\n{host2}: 맞아요! {destination} {duration}인데, {golf_course}에서 {rounds}를 친다고요!",
+                    hotel: "{host1}: 숙박은 어디서 하는 거예요?\n{host2}: 어머, {hotel}이에요! 이 호텔이 얼마나 좋은지! {meals}까지 다 포함이래요!",
+                    flight: "{host1}: 항공편은 어떻게 되나요?\n{host2}: {airline}으로 완전 편안하게! {departure_dates} 중에 언제든 출발 가능해요!",
+                    price: "{host1}: 가격이 궁금한데요?\n{host2}: 깜짝 놀라지 마세요! {includes} 다 포함해서 {price}! 말도 안 되죠?",
+                    perks: "{host1}: 혜택도 더 있나요?\n{host2}: 당연하죠! {perks} 이런 것도 다 드려요! 단, {cautions} 이건 꼭 확인하세요!",
+                    ending: "{host1}: 이런 기회는 정말 흔하지 않아요!\n{host2}: 지금 바로 아래 링크 클릭하세요!"
+                }
+            },
+            friendly: { // 😊 친근한 라이브커머스 스타일
+                one_host: {
+                    intro: "안녕하세요 여러분~ 오늘도 좋은 여행 상품으로 찾아왔어요!",
+                    core: "{destination} {duration} 어떠세요? 정말 좋지 않나요? {golf_course}에서 {rounds} 치면서 힐링하는 거예요!",
+                    hotel: "숙박은 {hotel}에서 하시고요, {meals}도 맛있게 드실 수 있어요! 진짜 편하게 쉬다 오실 수 있어요~",
+                    flight: "{airline}으로 안전하고 편리하게 가시면 되고요, {departure_dates} 중에 원하시는 날짜로 골라서 가세요!",
+                    price: "그리고 가격도 정말 합리적이에요! {includes} 이런 것들 다 포함해서 {price}밖에 안 해요! 진짜 괜찮죠?",
+                    perks: "특별히 {perks} 이런 혜택들도 드리고 있어요! 아, 그리고 {cautions} 이건 미리 체크해주세요!",
+                    ending: "어떠세요? 마음에 드시죠? 그럼 바로 아래 링크에서 확인해보세요!"
+                },
+                two_hosts: {
+                    intro: "{host1}: 안녕하세요~ {host1}이에요!\n{host2}: {host2}입니다! 오늘 정말 좋은 여행 상품 준비했어요!",
+                    core: "{host1}: {destination} 여행 어때요?\n{host2}: 좋죠! {golf_course}에서 {rounds} 치면서 힐링하는 거예요!",
+                    hotel: "{host1}: 어디서 숙박하나요?\n{host2}: {hotel}에서 하시고, {meals}도 맛있게 드실 수 있어요!",
+                    flight: "{host1}: 항공편은 어떻게 되나요?\n{host2}: {airline}으로 편리하게! {departure_dates} 중에 골라서 가세요!",
+                    price: "{host1}: 가격은 어떻게 되나요?\n{host2}: {includes} 다 포함해서 {price}! 정말 합리적이죠?",
+                    perks: "{host1}: 다른 혜택도 있나요?\n{host2}: 네! {perks} 이런 것들도 드려요! {cautions} 이건 체크해주세요!",
+                    ending: "{host1}: 어떠세요? 마음에 드시나요?\n{host2}: 그럼 바로 아래 링크에서 확인해보세요!"
+                }
+            },
+            professional: { // 💼 전문적+재미있는 스타일
+                one_host: {
+                    intro: "안녕하세요! 여행 전문가가 엄선한 특별한 상품을 소개해드리겠습니다.",
+                    core: "{destination} {duration} 프리미엄 패키지입니다. {golf_course}에서의 {rounds}, 이건 정말 특별한 경험이 될 거예요.",
+                    hotel: "숙박 시설로는 {hotel}을 선정했습니다. {meals} 서비스와 함께 최상의 컴포트를 제공해드려요.",
+                    flight: "항공편은 신뢰할 수 있는 {airline}을 이용하시고, {departure_dates} 기간 중 유연하게 출발 일정을 잡으실 수 있습니다.",
+                    price: "이 모든 서비스, {includes}를 포함한 패키지 가격이 {price}입니다. 가성비 측면에서 정말 훌륭한 선택이죠.",
+                    perks: "추가로 {perks} 등의 프리미엄 혜택도 준비했습니다. 다만 {cautions} 사전 준비사항은 꼭 확인해주세요.",
+                    ending: "전문가가 추천하는 이 특별한 여행, 놓치지 마시고 지금 바로 확인해보세요!"
+                },
+                two_hosts: {
+                    intro: "{host1}: 안녕하세요, 여행 전문가 {host1}입니다.\n{host2}: {host2}입니다. 오늘 정말 특별한 상품을 준비했어요.",
+                    core: "{host1}: {destination} 패키지군요?\n{host2}: 네, {golf_course}에서의 {rounds}는 정말 프리미엄 경험이에요.",
+                    hotel: "{host1}: 숙박은 어떻게 구성되나요?\n{host2}: {hotel}에서 {meals} 서비스와 함께 최상의 휴식을 제공합니다.",
+                    flight: "{host1}: 항공편 정보도 알려주세요.\n{host2}: {airline} 이용으로 {departure_dates} 중 유연한 출발이 가능해요.",
+                    price: "{host1}: 투자 가치는 어떻게 보시나요?\n{host2}: {includes} 포함 {price}, 가성비 면에서 정말 탁월합니다.",
+                    perks: "{host1}: 추가 혜택도 있나요?\n{host2}: {perks} 등 프리미엄 혜택이 있고, {cautions} 사전 준비는 필수예요.",
+                    ending: "{host1}: 전문가 추천 상품이군요.\n{host2}: 네, 지금 바로 확인해보시길 추천드려요!"
+                }
+            }
+        };
+
+        const selectedTemplate = templates[hostStyle] || templates.passionate;
+        const styleTemplate = selectedTemplate[scriptType] || selectedTemplate.one_host;
+        
+        // 대본 길이에 따른 시간 구간 설정
+        const duration = parseInt(document.getElementById('duration-select').value) || 60;
+        let sections = [];
+
+        // 기본형 구조 사용
+        if (duration === 90) {
+            sections = [
+                { time: "00:00-00:13", title: "인트로", content: styleTemplate.intro },
+                { time: "00:13-00:26", title: "상품 핵심", content: styleTemplate.core },
+                { time: "00:26-00:39", title: "숙박&편의", content: styleTemplate.hotel },
+                { time: "00:39-00:52", title: "항공&조건", content: styleTemplate.flight },
+                { time: "00:52-01:05", title: "포함&가격", content: styleTemplate.price },
+                { time: "01:05-01:18", title: "특전 및 유의", content: styleTemplate.perks },
+                { time: "01:18-01:30", title: "엔딩", content: styleTemplate.ending }
+            ];
+        } else {
+            sections = [
+                { time: "00:00-00:08", title: "인트로", content: styleTemplate.intro },
+                { time: "00:08-00:18", title: "상품 핵심", content: styleTemplate.core },
+                { time: "00:18-00:28", title: "숙박&편의", content: styleTemplate.hotel },
+                { time: "00:28-00:38", title: "항공&조건", content: styleTemplate.flight },
+                { time: "00:38-00:48", title: "포함&가격", content: styleTemplate.price },
+                { time: "00:48-00:55", title: "특전 및 유의", content: styleTemplate.perks },
+                { time: "00:55-01:00", title: "엔딩", content: styleTemplate.ending }
+            ];
+        }
+
+        return sections.map(section => {
+            let content = section.content;
+            
+            // 데이터 치환
+            Object.entries(data).forEach(([key, value]) => {
+                const placeholder = `{${key}}`;
+                if (Array.isArray(value)) {
+                    content = content.replace(new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g'), value.slice(0, 3).join(', '));
+                } else {
+                    content = content.replace(new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g'), value || '');
+                }
+            });
+
+            // 호스트 이름 치환 (2인 진행용)
+            if (hostNames) {
+                content = content.replace(/{host1}/g, hostNames.host1 || '진행자1');
+                content = content.replace(/{host2}/g, hostNames.host2 || '진행자2');
+            }
+
+            return `[${section.time}] ${section.title}\n${content}`;
+        }).join('\n\n');
+    }
+
+    async createFolderAndSaveScript(scriptType, scripts, duration) {
+        // Mock implementation
+        console.log('Saving script:', { scriptType, scripts, duration });
+        await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+
+    switchScriptTab(tabName) {
+        // Update tab buttons
+        document.getElementById('tab-one-host').classList.remove('border-blue-600', 'text-blue-600');
+        document.getElementById('tab-one-host').classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700');
+        
+        document.getElementById('tab-two-host').classList.remove('border-blue-600', 'text-blue-600');
+        document.getElementById('tab-two-host').classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700');
+
+        // Hide all contents
+        document.getElementById('one-host-content').classList.add('hidden');
+        document.getElementById('two-host-content').classList.add('hidden');
+
+        // Show selected content
+        if (tabName === 'one-host') {
+            document.getElementById('tab-one-host').classList.remove('border-transparent', 'text-gray-500', 'hover:text-gray-700');
+            document.getElementById('tab-one-host').classList.add('border-blue-600', 'text-blue-600');
+            document.getElementById('one-host-content').classList.remove('hidden');
+        } else if (tabName === 'two-host') {
+            document.getElementById('tab-two-host').classList.remove('border-transparent', 'text-gray-500', 'hover:text-gray-700');
+            document.getElementById('tab-two-host').classList.add('border-blue-600', 'text-blue-600');
+            document.getElementById('two-host-content').classList.remove('hidden');
+        }
+    }
+
+    showEditFieldsModal() {
+        if (!this.currentParsedData) return;
+        
+        const form = document.getElementById('edit-fields-form');
+        form.innerHTML = '';
+        
+        Object.entries(this.currentParsedData).forEach(([key, value]) => {
+            if (typeof value === 'string') {
+                const fieldDiv = document.createElement('div');
+                fieldDiv.innerHTML = `
+                    <label class="block text-sm font-medium text-gray-700 mb-1">${this.getFieldLabel(key)}</label>
+                    <input 
+                        type="text" 
+                        id="edit-${key}" 
+                        value="${value}" 
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                `;
+                form.appendChild(fieldDiv);
+            }
+        });
+        
+        document.getElementById('edit-fields-modal').classList.remove('hidden');
+    }
+
+    getFieldLabel(key) {
+        const labels = {
+            product_name: '상품명',
+            destination: '목적지',
+            duration: '기간',
+            airline: '항공사',
+            hotel: '숙박',
+            golf_course: '골프장',
+            rounds: '라운드',
+            meals: '식사',
+            price: '가격',
+            departure_dates: '출발일'
+        };
+        return labels[key] || key;
+    }
+
+    hideEditFieldsModal() {
+        document.getElementById('edit-fields-modal').classList.add('hidden');
+    }
+
+    saveEditedFields() {
+        const form = document.getElementById('edit-fields-form');
+        const inputs = form.querySelectorAll('input');
+        
+        inputs.forEach(input => {
+            const key = input.id.replace('edit-', '');
+            this.currentParsedData[key] = input.value;
+        });
+        
+        this.displayParsedFields();
+        this.hideEditFieldsModal();
+    }
+
+    showResetModal() {
+        document.getElementById('reset-modal').classList.remove('hidden');
+    }
+
+    hideResetModal() {
+        document.getElementById('reset-modal').classList.add('hidden');
+    }
+
+    confirmReset() {
+        // Reset all data
+        this.currentProduct = null;
+        this.currentParsedData = null;
+        
+        // Reset UI
+        document.getElementById('url-input').value = '';
+        document.getElementById('parsing-results').classList.add('hidden');
+        document.getElementById('parsing-empty').classList.remove('hidden');
+        document.getElementById('script-results-section').classList.add('hidden');
+        document.getElementById('generate-script-btn').disabled = true;
+        
+        // Reset form
+        document.querySelector('input[name="script-type"][value="one_host"]').checked = true;
+        document.getElementById('tone-select').value = 'friendly';
+        document.getElementById('target-select').value = 'golf';
+        document.getElementById('duration-select').value = '60';
+        document.getElementById('host1-name').value = '';
+        document.getElementById('host2-name').value = '';
+        document.getElementById('host-names-section').classList.add('hidden');
+        
+        this.hideResetModal();
+        
+        alert('데이터가 초기화되었습니다.');
+    }
+
+    setupCopyAndDownloadButtons() {
+        // Copy buttons
+        document.querySelectorAll('button').forEach(btn => {
+            if (btn.innerHTML.includes('복사')) {
+                btn.addEventListener('click', (e) => {
+                    const content = e.target.closest('.space-y-6').querySelector('div[id$="-script"]').textContent;
+                    navigator.clipboard.writeText(content).then(() => {
+                        const originalText = e.target.innerHTML;
+                        e.target.innerHTML = '<i class="fas fa-check mr-1"></i>복사됨';
+                        setTimeout(() => {
+                            e.target.innerHTML = originalText;
+                        }, 2000);
+                    });
+                });
+            }
+            
+            if (btn.innerHTML.includes('다운로드')) {
+                btn.addEventListener('click', (e) => {
+                    const content = e.target.closest('.space-y-6').querySelector('div[id$="-script"]').textContent;
+                    const type = e.target.closest('.space-y-6').id.includes('one-host') ? '1인진행' : '2인진행';
+                    const fileName = `${this.currentParsedData?.product_name || '대본'}_${type}.txt`;
+                    
+                    const blob = new Blob([content], { type: 'text/plain' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = fileName;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                });
+            }
+        });
+    }
+
+    // Library functions
+    loadMockLibraryData() {
+        this.libraryData = [
+            {
+                id: 'folder-001',
+                created_at: '2024-03-20',
+                product_name: '태국 푸켓 3박4일 골프 패키지',
+                author: '김여행',
+                status: 'confirmed'
+            },
+            {
+                id: 'folder-002', 
+                created_at: '2024-03-18',
+                product_name: '일본 오키나와 4박5일 리조트',
+                author: '이여행',
+                status: 'draft'
+            },
+            {
+                id: 'folder-003',
+                created_at: '2024-03-15',
+                product_name: '베트남 다낭 5박6일 골프&휴양',
+                author: '김여행',
+                status: 'confirmed'
+            }
+        ];
+    }
+
+    loadLibraryData() {
+        const tbody = document.getElementById('library-table-body');
+        tbody.innerHTML = '';
+        
+        this.libraryData.forEach(item => {
+            const row = document.createElement('tr');
+            row.className = 'hover:bg-gray-50 cursor-pointer';
+            
+            const statusClass = item.status === 'confirmed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800';
+            const statusText = item.status === 'confirmed' ? '확정' : '초안';
+            
+            row.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.created_at}</td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm font-medium text-gray-900">${item.product_name}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.author}</td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusClass}">
+                        ${statusText}
+                    </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <button class="text-blue-600 hover:text-blue-900 mr-3">보기</button>
+                    <button class="text-gray-600 hover:text-gray-900">삭제</button>
+                </td>
+            `;
+            
+            tbody.appendChild(row);
+        });
+    }
+
+    filterLibraryData(searchTerm = '') {
+        const searchValue = searchTerm || document.getElementById('library-search').value.toLowerCase();
+        const filterValue = document.getElementById('library-filter').value;
+        
+        let filteredData = this.libraryData.filter(item => {
+            const matchesSearch = searchValue === '' || 
+                item.product_name.toLowerCase().includes(searchValue) ||
+                item.author.toLowerCase().includes(searchValue);
+            
+            const matchesFilter = filterValue === '' || item.status === filterValue;
+            
+            return matchesSearch && matchesFilter;
+        });
+        
+        // Update table with filtered data
+        const tbody = document.getElementById('library-table-body');
+        tbody.innerHTML = '';
+        
+        filteredData.forEach(item => {
+            const row = document.createElement('tr');
+            row.className = 'hover:bg-gray-50 cursor-pointer';
+            
+            const statusClass = item.status === 'confirmed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800';
+            const statusText = item.status === 'confirmed' ? '확정' : '초안';
+            
+            row.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.created_at}</td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm font-medium text-gray-900">${item.product_name}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.author}</td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusClass}">
+                        ${statusText}
+                    </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <button class="text-blue-600 hover:text-blue-900 mr-3">보기</button>
+                    <button class="text-gray-600 hover:text-gray-900">삭제</button>
+                </td>
+            `;
+            
+            tbody.appendChild(row);
+        });
+    }
+
+    // TTS Methods
+    initTTS() {
+        // Load available voices
+        if (this.tts.synth) {
+            this.loadVoices();
+            
+            // Voice loading can be asynchronous
+            if (this.tts.synth.onvoiceschanged !== undefined) {
+                this.tts.synth.onvoiceschanged = () => {
+                    this.loadVoices();
+                };
+            }
+        }
+    }
+
+    loadVoices() {
+        this.tts.voices = this.tts.synth.getVoices();
+        const voiceSelect = document.getElementById('voice-select');
+        
+        if (voiceSelect && this.tts.voices.length > 0) {
+            voiceSelect.innerHTML = '';
+            
+            // Filter Korean voices first, then others
+            const koreanVoices = this.tts.voices.filter(voice => 
+                voice.lang.includes('ko') || voice.name.includes('Korean')
+            );
+            const otherVoices = this.tts.voices.filter(voice => 
+                !voice.lang.includes('ko') && !voice.name.includes('Korean')
+            );
+            
+            // Add Korean voices
+            if (koreanVoices.length > 0) {
+                const koreanGroup = document.createElement('optgroup');
+                koreanGroup.label = '한국어 음성';
+                koreanVoices.forEach((voice, index) => {
+                    const option = document.createElement('option');
+                    option.value = index;
+                    option.textContent = `${voice.name} (${voice.lang})`;
+                    koreanGroup.appendChild(option);
+                });
+                voiceSelect.appendChild(koreanGroup);
+            }
+            
+            // Add other voices
+            if (otherVoices.length > 0) {
+                const otherGroup = document.createElement('optgroup');
+                otherGroup.label = '기타 음성';
+                otherVoices.forEach((voice, index) => {
+                    const option = document.createElement('option');
+                    option.value = koreanVoices.length + index;
+                    option.textContent = `${voice.name} (${voice.lang})`;
+                    otherGroup.appendChild(option);
+                });
+                voiceSelect.appendChild(otherGroup);
+            }
+            
+            // Set default to first Korean voice or first available
+            if (koreanVoices.length > 0) {
+                voiceSelect.value = 0;
+            } else if (this.tts.voices.length > 0) {
+                voiceSelect.value = 0;
+            }
+        }
+    }
+
+    setupTTSEventListeners() {
+        // Play buttons
+        document.getElementById('play-one-host')?.addEventListener('click', () => {
+            this.playScript('one-host');
+        });
+        
+        document.getElementById('play-two-host')?.addEventListener('click', () => {
+            this.playScript('two-host');
+        });
+        
+        // Voice control panel
+        document.getElementById('voice-play-pause')?.addEventListener('click', () => {
+            this.togglePlayPause();
+        });
+        
+        document.getElementById('voice-stop')?.addEventListener('click', () => {
+            this.stop();
+        });
+        
+        document.getElementById('close-voice-control')?.addEventListener('click', () => {
+            this.hideVoiceControl();
+            this.stop();
+        });
+        
+        // Voice settings
+        document.getElementById('voice-rate')?.addEventListener('input', (e) => {
+            document.getElementById('rate-value').textContent = e.target.value + 'x';
+        });
+        
+        document.getElementById('voice-pitch')?.addEventListener('input', (e) => {
+            document.getElementById('pitch-value').textContent = parseFloat(e.target.value).toFixed(1);
+        });
+    }
+
+    playScript(scriptType) {
+        const scriptContent = scriptType === 'one-host' 
+            ? document.getElementById('one-host-script').textContent
+            : document.getElementById('two-host-script').textContent;
+            
+        if (!scriptContent.trim()) {
+            alert('먼저 대본을 생성해주세요.');
+            return;
+        }
+        
+        this.tts.currentScript = this.cleanScriptForTTS(scriptContent);
+        this.tts.currentScriptType = scriptType;
+        
+        this.showVoiceControl();
+        this.startSpeech();
+    }
+
+    cleanScriptForTTS(script) {
+        // Remove time codes and clean up text for better TTS
+        return script
+            .replace(/\[\d{2}:\d{2}-\d{2}:\d{2}\]\s*/g, '') // Remove time codes
+            .replace(/진행자\d+:\s*/g, '') // Remove host labels
+            .replace(/\n\n+/g, '\n') // Clean up multiple newlines
+            .trim();
+    }
+
+    showVoiceControl() {
+        document.getElementById('voice-control-panel').classList.remove('hidden');
+        this.updateProgressDisplay();
+    }
+
+    hideVoiceControl() {
+        document.getElementById('voice-control-panel').classList.add('hidden');
+    }
+
+    startSpeech() {
+        if (this.tts.synth.speaking) {
+            this.tts.synth.cancel();
+        }
+        
+        this.tts.utterance = new SpeechSynthesisUtterance(this.tts.currentScript);
+        
+        // Get current settings
+        const voiceIndex = parseInt(document.getElementById('voice-select').value) || 0;
+        const rate = parseFloat(document.getElementById('voice-rate').value) || 0.9;
+        const pitch = parseFloat(document.getElementById('voice-pitch').value) || 1.0;
+        
+        // Apply settings
+        if (this.tts.voices[voiceIndex]) {
+            this.tts.utterance.voice = this.tts.voices[voiceIndex];
+        }
+        this.tts.utterance.rate = rate;
+        this.tts.utterance.pitch = pitch;
+        this.tts.utterance.volume = 1.0;
+        
+        // Event listeners
+        this.tts.utterance.onstart = () => {
+            this.tts.isPlaying = true;
+            this.tts.isPaused = false;
+            this.startProgressTracking();
+        };
+        
+        this.tts.utterance.onend = () => {
+            this.tts.isPlaying = false;
+            this.tts.isPaused = false;
+            this.resetProgress();
+        };
+        
+        this.tts.utterance.onerror = (event) => {
+            console.error('Speech synthesis error:', event);
+            this.tts.isPlaying = false;
+            this.tts.isPaused = false;
+            alert('음성 재생 중 오류가 발생했습니다.');
+        };
+        
+        // Start speaking
+        this.tts.synth.speak(this.tts.utterance);
+    }
+
+    togglePlayPause() {
+        if (!this.tts.synth.speaking && !this.tts.isPaused) {
+            // Start new speech
+            this.startSpeech();
+        } else if (this.tts.isPlaying && !this.tts.isPaused) {
+            // Pause
+            this.tts.synth.pause();
+            this.tts.isPaused = true;
+            this.tts.isPlaying = false;
+        } else if (this.tts.isPaused) {
+            // Resume
+            this.tts.synth.resume();
+            this.tts.isPaused = false;
+            this.tts.isPlaying = true;
+        }
+    }
+
+    stop() {
+        this.tts.synth.cancel();
+        this.tts.isPlaying = false;
+        this.tts.isPaused = false;
+        this.resetProgress();
+    }
+
+    startProgressTracking() {
+        // Estimate total duration based on text length and speech rate
+        const words = this.tts.currentScript.split(' ').length;
+        const rate = parseFloat(document.getElementById('voice-rate').value) || 0.9;
+        const estimatedDuration = (words / (150 * rate)) * 60; // 150 words per minute baseline
+        
+        document.getElementById('total-time').textContent = this.formatTime(estimatedDuration);
+        
+        // Update progress periodically
+        this.progressInterval = setInterval(() => {
+            if (this.tts.isPlaying && this.tts.synth.speaking) {
+                // This is an approximation since Web Speech API doesn't provide precise progress
+                const elapsed = (Date.now() - this.speechStartTime) / 1000;
+                const progress = Math.min((elapsed / estimatedDuration) * 100, 100);
+                
+                document.getElementById('progress-bar').style.width = progress + '%';
+                document.getElementById('current-time').textContent = this.formatTime(elapsed);
+                
+                if (progress >= 100) {
+                    this.resetProgress();
+                }
+            }
+        }, 100);
+        
+        this.speechStartTime = Date.now();
+    }
+
+    resetProgress() {
+        if (this.progressInterval) {
+            clearInterval(this.progressInterval);
+        }
+        document.getElementById('progress-bar').style.width = '0%';
+        document.getElementById('current-time').textContent = '00:00';
+    }
+
+    updateProgressDisplay() {
+        document.getElementById('current-time').textContent = '00:00';
+        document.getElementById('total-time').textContent = '00:00';
+        document.getElementById('progress-bar').style.width = '0%';
+    }
+
+    formatTime(seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+}
+
+// Initialize app when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    window.aieodingApp = new AIeodingApp();
+});
+</script>
+
 </body>
 </html>
