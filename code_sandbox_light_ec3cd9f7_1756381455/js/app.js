@@ -508,24 +508,7 @@ class AIeodingApp {
                     perks: "{host1}: 혜택도 더 있나요?\n{host2}: 당연하죠! {perks} 이런 것도 다 드려요! 단, {cautions} 이건 꼭 확인하세요!",
                     perks_90: "{host1}: 혜택도 더 있나요?\n{host2}: 당연하죠! {perks} 이런 것도 다 드려요!\n{host1}: 와, 이것까지 다 포함이에요?\n{host2}: 네! 그리고 {cautions} 이건 꼭 미리 준비해주세요!",
                     ending: "{host1}: 이런 기회는 정말 흔하지 않아요!\n{host2}: 지금 바로 아래 링크 클릭하세요!",
-                    ending_90: "{host1}: 이런 기회는 정말 흔하지 않아요!\n{host2}: 매일 문의가 쇄도하고 있어서 조기 마감될 수 있어요!\n{host1}: 망설이지 마시고요!\n{host2}: 지금 바로 아래 링크 클릭하세요!",
-                    
-                    // 스토리텔링형 2인 진행
-                    hook: "{host1}: {host2}씨, 요즘 일상이 너무 지루하지 않나요?\n{host2}: 맞아요! 그래서 제가 다녀온 {destination} 이야기를 해드리려고요!",
-                    story: "{host1}: 정말요? 어떠셨어요?\n{host2}: {duration} 동안 정말 인생이 바뀌는 경험이었어요!",
-                    experience: "{host1}: 구체적으로 어떤 점이요?\n{host2}: {golf_course}에서 {rounds} 치면서, {hotel}에서 여유롭게 쉬면서...",
-                    benefits: "{host1}: 비용이 많이 들었을 것 같은데요?\n{host2}: 그게 아니에요! {price}에 {includes} 모든 게 포함이었어요!",
-                    emotion: "{host1}: 정말 특별한 경험이었겠네요!\n{host2}: 네! {perks} 이런 혜택까지 있어서 더 좋았어요!",
-                    cta: "{host1}: 듣기만 해도 가고 싶어져요!\n{host2}: 아래 링크로 여러분도 경험해보세요!",
-                    
-                    // 숏폼 최적화형 2인 진행
-                    impact: "{host1}: 잠깐! 이거 실화예요?\n{host2}: {price}에 {destination} {duration}! 진짜예요!",
-                    key_points: "{host1}: 뭐가 포함된 거예요?\n{host2}: {golf_course} {rounds}, {hotel} 숙박, {airline} 직항까지!",
-                    hidden_benefits: "{host1}: 설마 이게 다는 아니겠죠?\n{host2}: 당연히 더 있죠! {perks} 이것도 다 무료!",
-                    shocking_price: "{host1}: 다른 곳과 비교해봤어요?\n{host2}: {includes} 전부 포함 {price}! 어디서도 이 가격 없어요!",
-                    special_terms: "{host1}: 언제까지 가능한 거예요?\n{host2}: {departure_dates} 한정! {cautions} 준비만 하면 끝!",
-                    viral_element: "{host1}: 친구들이 부러워하겠어요!\n{host2}: 당연하죠! 이런 혜택 어디서 봤겠어요!",
-                    urgent_cta: "{host1}: 지금 안 누르면 후회할 것 같아요!\n{host2}: 맞아요! 바로 아래 링크 클릭!"
+                    ending_90: "{host1}: 이런 기회는 정말 흔하지 않아요!\n{host2}: 매일 문의가 쇄도하고 있어서 조기 마감될 수 있어요!\n{host1}: 망설이지 마시고요!\n{host2}: 지금 바로 아래 링크 클릭하세요!"
                 }
             },
             friendly: { // 😊 친근한 라이브커머스 스타일
