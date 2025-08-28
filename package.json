@@ -1,0 +1,17 @@
+{
+  "name": "malllog",
+  "version": "1.0.0",
+  "description": "1분 쇼호스트 대본 생성기",
+  "type": "module",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "echo 'No build step required'",
+    "start": "echo 'Static site - no start script needed'"
+  },
+  "dependencies": {
+    "openai": "^4.20.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
